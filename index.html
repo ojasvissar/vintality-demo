@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Vintality Farm Intelligence Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #0d1a0f; color: #e0ede1; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+  
+  .app { display: flex; height: 100vh; overflow: hidden; }
+  
+  /* Sidebar */
+  .sidebar { width: 210px; background: #111f13; border-right: 1px solid #1e3320; display: flex; flex-direction: column; padding: 0; flex-shrink: 0; overflow-y: auto; }
+  .sidebar-header { padding: 14px 14px 10px; border-bottom: 1px solid #1e3320; }
+  .logo { font-size: 12px; font-weight: 800; color: #5cb85c; letter-spacing: 1.5px; display: flex; align-items: center; gap: 6px; }
+  .logo-sub { font-size: 10px; color: #4a7050; font-weight: 400; margin-top: 2px; }
+  .section-label { font-size: 9px; color: #4a7050; text-transform: uppercase; letter-spacing: 1px; padding: 10px 14px 6px; font-weight: 700; }
+  .block-card { padding: 8px 14px; cursor: pointer; border-left: 2px solid transparent; transition: all 0.15s; }
+  .block-card:hover { background: #172019; border-left-color: #5cb85c; }
+  .block-name { font-size: 11px; font-weight: 600; color: #c8e6c9; }
+  .block-meta { font-size: 10px; margin-top: 2px; display: flex; gap: 8px; }
+  .risk-high { color: #ef5350; }
+  .risk-med { color: #ffa726; }
+  .risk-low { color: #66bb6a; }
+  .weather-widget { margin: 10px 14px; background: #172019; border-radius: 8px; padding: 10px; border: 1px solid #1e3320; }
+  .weather-title { font-size: 9px; color: #4a7050; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 6px; }
+  .weather-row { display: flex; justify-content: space-between; font-size: 10px; color: #a0c4a3; margin-bottom: 3px; }
+  .sidebar-footer { margin-top: auto; padding: 10px 14px; font-size: 9px; color: #2e4a30; border-top: 1px solid #1a2e1c; }
+
+  /* Main */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+  .topbar { padding: 12px 18px; border-bottom: 1px solid #1e3320; background: #111f13; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #5cb85c; box-shadow: 0 0 6px #5cb85c; }
+  .topbar-title { font-size: 13px; font-weight: 700; color: #c8e6c9; }
+  .topbar-badges { margin-left: auto; display: flex; gap: 6px; }
+  .badge { font-size: 9px; padding: 3px 8px; border-radius: 10px; border: 1px solid #2a4a2c; color: #5cb85c; background: #162019; font-weight: 600; letter-spacing: 0.5px; }
+
+  /* Messages */
+  .messages { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 14px; scroll-behavior: smooth; }
+  .welcome { text-align: center; padding: 30px 20px; }
+  .welcome-icon { font-size: 32px; margin-bottom: 12px; }
+  .welcome-title { font-size: 16px; font-weight: 700; color: #c8e6c9; margin-bottom: 6px; }
+  .welcome-sub { font-size: 12px; color: #5a8060; margin-bottom: 22px; line-height: 1.5; }
+  .suggestions { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; max-width: 600px; margin: 0 auto; }
+  .suggestion-btn { padding: 7px 13px; border-radius: 20px; background: #162019; border: 1px solid #2a4a2c; color: #a0c4a3; font-size: 11px; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+  .suggestion-btn:hover { background: #1e2d20; border-color: #5cb85c; color: #c8e6c9; }
+
+  .msg-wrap { display: flex; flex-direction: column; gap: 4px; }
+  .msg-wrap.user { align-items: flex-end; }
+  .msg-wrap.assistant { align-items: flex-start; }
+  
+  .tool-trace { font-size: 10px; color: #3d6b42; background: #111f13; border: 1px solid #1e3320; border-radius: 5px; padding: 4px 10px; display: flex; align-items: center; gap: 5px; max-width: 75%; }
+  .tool-trace-dot { width: 5px; height: 5px; border-radius: 50%; background: #5cb85c; flex-shrink: 0; }
+  
+  .bubble { max-width: 78%; padding: 11px 15px; font-size: 13px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+  .bubble.user { background: #1e4d22; border-radius: 18px 18px 4px 18px; color: #d4ebd5; }
+  .bubble.assistant { background: #162019; border-radius: 18px 18px 18px 4px; border: 1px solid #1e3320; color: #d4ebd5; }
+  
+  .loading-wrap { display: flex; align-items: center; gap: 8px; color: #4a7050; font-size: 12px; padding: 4px 0; }
+  .dot-pulse { display: flex; gap: 4px; }
+  .dot-pulse span { width: 5px; height: 5px; border-radius: 50%; background: #5cb85c; animation: pulse 1.2s ease-in-out infinite; }
+  .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+  .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+
+  /* Input */
+  .input-area { padding: 14px 18px; border-top: 1px solid #1e3320; background: #111f13; display: flex; gap: 10px; flex-shrink: 0; }
+  .chat-input { flex: 1; padding: 10px 16px; border-radius: 24px; background: #162019; border: 1px solid #2a4a2c; color: #e0ede1; font-size: 13px; outline: none; font-family: inherit; transition: border-color 0.15s; }
+  .chat-input:focus { border-color: #5cb85c; }
+  .chat-input::placeholder { color: #3a5e3c; }
+  .send-btn { padding: 10px 20px; border-radius: 24px; background: #3a8a3a; border: none; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s; flex-shrink: 0; }
+  .send-btn:hover:not(:disabled) { background: #4caf50; }
+  .send-btn:disabled { background: #1e3320; color: #3a5e3c; cursor: not-allowed; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2a4a2c; border-radius: 4px; }
+</style>
+</head>
+<body>
+<script>
+// ── MOCK FARM DATA (simulating PostGIS / RDS) ────────────────────────────────
+const FARM = {
+  blocks: {
+    B1: { name:"Block 1 – Cab Franc",   varietal:"Cabernet Franc",    area:2.3, vwc:28, soilTemp:14.2, canopyTemp:18.5, humidity:74, vpd:0.82, pmRisk:67, botRisk:34, etref:3.8, deficit:42, lastIrrigation:"2026-03-08", lastSpray:"2026-03-01" },
+    B2: { name:"Block 2 – Chardonnay",  varietal:"Chardonnay",        area:1.8, vwc:35, soilTemp:13.8, canopyTemp:17.2, humidity:68, vpd:0.95, pmRisk:41, botRisk:28, etref:3.4, deficit:18, lastIrrigation:"2026-03-10", lastSpray:"2026-03-05" },
+    B3: { name:"Block 3 – Merlot",      varietal:"Merlot",            area:3.1, vwc:22, soilTemp:15.1, canopyTemp:19.8, humidity:79, vpd:0.68, pmRisk:82, botRisk:51, etref:4.1, deficit:58, lastIrrigation:"2026-03-05", lastSpray:"2026-02-28" },
+    B4: { name:"Block 4 – Pinot Noir",  varietal:"Pinot Noir",        area:1.5, vwc:31, soilTemp:13.5, canopyTemp:17.8, humidity:71, vpd:0.88, pmRisk:55, botRisk:39, etref:3.6, deficit:29, lastIrrigation:"2026-03-09", lastSpray:"2026-03-03" },
+    B5: { name:"Block 5 – Sauv Blanc",  varietal:"Sauvignon Blanc",   area:2.0, vwc:19, soilTemp:14.8, canopyTemp:20.1, humidity:82, vpd:0.61, pmRisk:91, botRisk:63, etref:4.3, deficit:71, lastIrrigation:"2026-03-03", lastSpray:"2026-02-25" },
+  },
+  weather: {
+    temp:16.4, humidity:73, windSpeed:12, windDir:"SW",
+    solar:420, frostProb:8, gddSeason:142,
+    forecast:[
+      { day:"Tomorrow", maxTemp:14.2, humidity:81, rainProb:60, frostProb:22 },
+      { day:"Day 3",    maxTemp:11.8, humidity:88, rainProb:85, frostProb:41 },
+    ]
+  }
+};
+
+// ── TOOL IMPLEMENTATIONS (simulating AWS Lambda functions) ───────────────────
+const TOOLS_FN = {
+  get_block_sensor_data({ block_id }) {
+    const b = FARM.blocks[block_id];
+    if (!b) return { error: `Block ${block_id} not found. Available: B1-B5` };
+    return {
+      block_id, name: b.name, varietal: b.varietal,
+      soil:   { vwc_pct: b.vwc, temp_c: b.soilTemp },
+      canopy: { temp_c: b.canopyTemp, humidity_pct: b.humidity, vpd_kpa: b.vpd },
+      timestamp: new Date().toISOString()
+    };
+  },
+  get_disease_risk({ block_id }) {
+    const b = FARM.blocks[block_id];
+    if (!b) return { error: `Block ${block_id} not found` };
+    const sprayDays = Math.floor((Date.now() - new Date(b.lastSpray)) / 86400000);
+    return {
+      block_id, name: b.name,
+      pm_risk: {
+        score: b.pmRisk,
+        level: b.pmRisk > 70 ? "HIGH" : b.pmRisk > 40 ? "MODERATE" : "LOW",
+        driving: `RH ${b.humidity}%, canopy ${b.canopyTemp}°C, VPD ${b.vpd} kPa`
+      },
+      botrytis: {
+        score: b.botRisk,
+        level: b.botRisk > 50 ? "HIGH" : b.botRisk > 30 ? "MODERATE" : "LOW"
+      },
+      last_spray_days_ago: sprayDays,
+      spray_window_open: b.humidity < 75 && FARM.weather.windSpeed > 8
+    };
+  },
+  get_irrigation_status({ block_id }) {
+    const b = FARM.blocks[block_id];
+    if (!b) return { error: `Block ${block_id} not found` };
+    const irrDays = Math.floor((Date.now() - new Date(b.lastIrrigation)) / 86400000);
+    return {
+      block_id, name: b.name,
+      vwc_pct: b.vwc,
+      deficit_mm: b.deficit,
+      etref_daily: b.etref,
+      days_since_irrigation: irrDays,
+      days_to_critical: Math.max(0, Math.floor((b.vwc - 20) / (b.etref * 0.3))),
+      recommendation: b.deficit > 50
+        ? "URGENT – irrigate within 24h"
+        : b.deficit > 30
+          ? "Irrigate within 2–3 days"
+          : "Adequate moisture"
+    };
+  },
+  get_weather_forecast() {
+    return FARM.weather;
+  },
+  compare_blocks({ metric }) {
+    const key = { pm_risk:"pmRisk", deficit:"deficit", vwc:"vwc", botrytis:"botRisk" }[metric] || "pmRisk";
+    const sorted = Object.entries(FARM.blocks)
+      .map(([id, b]) => ({ block_id: id, name: b.name, varietal: b.varietal, value: b[key] }))
+      .sort((a, b) => b.value - a.value);
+    return { metric, unit: metric === "deficit" ? "mm" : metric === "vwc" ? "%" : "score", blocks: sorted };
+  },
+  get_block_list() {
+    return Object.entries(FARM.blocks).map(([id, b]) => ({
+      block_id: id, name: b.name, varietal: b.varietal, area_ha: b.area
+    }));
+  }
+};
+
+// ── TOOL SCHEMAS (sent to Claude) ────────────────────────────────────────────
+const TOOL_DEFS = [
+  {
+    name: "get_block_sensor_data",
+    description: "Get current soil (VWC, temp) and canopy (temp, humidity, VPD) sensor readings for a specific block.",
+    input_schema: { type:"object", properties: { block_id: { type:"string", description:"Block ID: B1, B2, B3, B4, or B5" } }, required:["block_id"] }
+  },
+  {
+    name: "get_disease_risk",
+    description: "Get PM and Botrytis disease risk scores, driving conditions, last spray date, and whether spray window is currently open.",
+    input_schema: { type:"object", properties: { block_id: { type:"string" } }, required:["block_id"] }
+  },
+  {
+    name: "get_irrigation_status",
+    description: "Get irrigation status: VWC, deficit (mm), ETref, days since last irrigation, and urgency recommendation.",
+    input_schema: { type:"object", properties: { block_id: { type:"string" } }, required:["block_id"] }
+  },
+  {
+    name: "get_weather_forecast",
+    description: "Get current weather conditions and 2-day forecast: temp, humidity, wind, solar radiation, frost probability, GDD season total.",
+    input_schema: { type:"object", properties: {} }
+  },
+  {
+    name: "compare_blocks",
+    description: "Rank all blocks by a metric to identify which need the most attention.",
+    input_schema: { type:"object", properties: { metric: { type:"string", enum:["pm_risk","deficit","vwc","botrytis"] } }, required:["metric"] }
+  },
+  {
+    name: "get_block_list",
+    description: "List all farm blocks with IDs, varietals, and area.",
+    input_schema: { type:"object", properties: {} }
+  }
+];
+
+// ── SYSTEM PROMPT ─────────────────────────────────────────────────────────────
+const SYSTEM = `You are an agronomic AI assistant for Vintality, a precision viticulture platform in the Okanagan Valley, BC.
+
+You have access to real-time sensor data via tool calls. ALWAYS retrieve actual data before answering — never fabricate readings.
+
+When responding:
+- Reference exact sensor values you retrieved
+- Contextualise numbers (e.g. "VWC of 19% is critically low — field capacity for this soil type is ~35%")
+- Prioritise by urgency when multiple issues exist
+- Be concise and actionable — supervisors need decisions, not lectures
+
+Domain knowledge:
+- VWC below 25% = concerning; below 20% = critical. Irrigate immediately if deficit >50mm and ETref >3.5mm/day
+- PM risk >70 = high priority spray. Spray window requires humidity <75% and wind >8 km/h
+- VPD 0.5–1.5 kPa is the healthy range. Below 0.5 = disease pressure. Above 1.5 = heat stress
+- Botrytis risk >50 = reduce canopy humidity, consider fungicide
+- Always check weather before irrigation or spray recommendations`;
+
+// ── APP STATE ────────────────────────────────────────────────────────────────
+let chatHistory = [];
+
+// ── RENDER UI ────────────────────────────────────────────────────────────────
+document.body.innerHTML = `
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">🍇 VINTALITY</div>
+      <div class="logo-sub">Farm Intelligence Demo</div>
+    </div>
+    <div class="section-label">Vineyard Blocks</div>
+    ${Object.entries(FARM.blocks).map(([id, b]) => `
+      <div class="block-card" onclick="setInput('What is the current status of ${b.name}?')">
+        <div class="block-name">${id} · ${b.varietal}</div>
+        <div class="block-meta">
+          <span class="${b.pmRisk > 70 ? 'risk-high' : b.pmRisk > 40 ? 'risk-med' : 'risk-low'}">PM ${b.pmRisk}</span>
+          <span class="${b.vwc < 22 ? 'risk-high' : b.vwc < 28 ? 'risk-med' : 'risk-low'}">VWC ${b.vwc}%</span>
+          <span class="${b.deficit > 50 ? 'risk-high' : b.deficit > 30 ? 'risk-med' : 'risk-low'}">−${b.deficit}mm</span>
+        </div>
+      </div>`).join('')}
+    <div class="weather-widget">
+      <div class="weather-title">⛅ Current Weather</div>
+      <div class="weather-row"><span>Temp</span><span>${FARM.weather.temp}°C</span></div>
+      <div class="weather-row"><span>Humidity</span><span>${FARM.weather.humidity}%</span></div>
+      <div class="weather-row"><span>Wind</span><span>${FARM.weather.windSpeed} km/h ${FARM.weather.windDir}</span></div>
+      <div class="weather-row"><span>Frost risk</span><span>${FARM.weather.frostProb}%</span></div>
+      <div class="weather-row"><span>GDD season</span><span>${FARM.weather.gddSeason}</span></div>
+    </div>
+    <div class="sidebar-footer">Okanagan Valley, BC · Live demo<br>Sensor data: March 14 2026</div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="status-dot"></div>
+      <span class="topbar-title">Farm Intelligence Assistant</span>
+      <div class="topbar-badges">
+        <span class="badge">TOOL USE</span>
+        <span class="badge">RAG</span>
+        <span class="badge">STRUCTURED DATA</span>
+      </div>
+    </div>
+    <div class="messages" id="messages">
+      <div class="welcome">
+        <div class="welcome-icon">🌿</div>
+        <div class="welcome-title">Ask about your vineyard</div>
+        <div class="welcome-sub">Real-time sensor data · Disease risk · Irrigation · Weather<br>Claude retrieves actual block data via tool calls before every answer</div>
+        <div class="suggestions">
+          <button class="suggestion-btn" onclick="setInput('Which blocks need irrigation most urgently?')">Which blocks need irrigation most urgently?</button>
+          <button class="suggestion-btn" onclick="setInput('What is the PM risk on my Cab Franc?')">What is the PM risk on my Cab Franc?</button>
+          <button class="suggestion-btn" onclick="setInput('Is it safe to spray today?')">Is it safe to spray today?</button>
+          <button class="suggestion-btn" onclick="setInput('Give me a full farm status summary')">Give me a full farm status summary</button>
+          <button class="suggestion-btn" onclick="setInput('Which block has the highest disease risk?')">Which block has the highest disease risk?</button>
+          <button class="suggestion-btn" onclick="setInput('Should I worry about frost this week?')">Should I worry about frost this week?</button>
+        </div>
+      </div>
+    </div>
+    <div class="input-area">
+      <input class="chat-input" id="chatInput" placeholder="Ask about irrigation, disease risk, weather, block status..." onkeydown="if(event.key==='Enter') sendMessage()" />
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+</div>`;
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function setInput(text) {
+  document.getElementById('chatInput').value = text;
+  document.getElementById('chatInput').focus();
+}
+
+function scrollBottom() {
+  const el = document.getElementById('messages');
+  el.scrollTop = el.scrollHeight;
+}
+
+function appendMessage(role, content, toolCalls = []) {
+  const msgs = document.getElementById('messages');
+  const welcome = msgs.querySelector('.welcome');
+  if (welcome) welcome.remove();
+
+  const wrap = document.createElement('div');
+  wrap.className = `msg-wrap ${role}`;
+
+  if (toolCalls.length > 0) {
+    const trace = document.createElement('div');
+    trace.className = 'tool-trace';
+    trace.innerHTML = `<div class="tool-trace-dot"></div>Called: ${toolCalls.map(t => t.name.replace(/_/g, ' ')).join(' → ')}`;
+    wrap.appendChild(trace);
+  }
+
+  const bubble = document.createElement('div');
+  bubble.className = `bubble ${role}`;
+  bubble.textContent = content;
+  wrap.appendChild(bubble);
+  msgs.appendChild(wrap);
+  scrollBottom();
+  return bubble;
+}
+
+function showLoading() {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'loading-wrap';
+  div.id = 'loadingIndicator';
+  div.innerHTML = `<div class="dot-pulse"><span></span><span></span><span></span></div><span id="loadingText">Querying sensor data…</span>`;
+  msgs.appendChild(div);
+  scrollBottom();
+}
+
+function hideLoading() {
+  const el = document.getElementById('loadingIndicator');
+  if (el) el.remove();
+}
+
+function updateLoadingText(text) {
+  const el = document.getElementById('loadingText');
+  if (el) el.textContent = text;
+}
+
+// ── MAIN CHAT FUNCTION ───────────────────────────────────────────────────────
+async function callAPI(messages) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: SYSTEM,
+      tools: TOOL_DEFS,
+      messages
+    })
+  });
+  return res.json();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const btn   = document.getElementById('sendBtn');
+  const text  = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  btn.disabled = true;
+  appendMessage('user', text);
+  showLoading();
+
+  const userMsg = { role: 'user', content: text };
+  let messages = [...chatHistory, userMsg];
+  const toolCallsUsed = [];
+
+  try {
+    let data = await callAPI(messages);
+
+    // Agentic tool-use loop — handles multi-step reasoning
+    while (data.stop_reason === 'tool_use') {
+      const assistantMsg = { role: 'assistant', content: data.content };
+      messages.push(assistantMsg);
+
+      const toolResults = [];
+      for (const block of data.content) {
+        if (block.type === 'tool_use') {
+          updateLoadingText(`Fetching ${block.name.replace(/_/g, ' ')}…`);
+          const fn     = TOOLS_FN[block.name];
+          const result = fn ? fn(block.input) : { error: 'Unknown tool' };
+          toolCallsUsed.push({ name: block.name, input: block.input });
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: block.id,
+            content: JSON.stringify(result)
+          });
+        }
+      }
+
+      messages.push({ role: 'user', content: toolResults });
+      updateLoadingText('Interpreting agronomic data…');
+      data = await callAPI(messages);
+    }
+
+    hideLoading();
+    const finalText = (data.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text)
+      .join('');
+
+    appendMessage('assistant', finalText || 'No response.', toolCallsUsed);
+
+    // Maintain rolling context window (last 20 messages = ~10 turns)
+    chatHistory = [...chatHistory, userMsg, { role: 'assistant', content: data.content }].slice(-20);
+
+  } catch (e) {
+    hideLoading();
+    appendMessage('assistant', '⚠️ API error. Open this file directly in a browser — it calls the Anthropic API which requires network access.');
+    console.error(e);
+  }
+
+  btn.disabled = false;
+  input.focus();
+}
+</script>
+</body>
+</html>
