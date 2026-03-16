@@ -407,7 +407,7 @@ async function sendMessage() {
 
   } catch (e) {
     hideLoading();
-    appendMessage('assistant', '⚠️ API error. Open this file directly in a browser — it calls the Anthropic API which requires network access.');
+    appendMessage('assistant', '⚠️ API error. Open this file directly in a browser — it calls the Anthropic API which requires network access for it.');
     console.error(e);
   }
 
